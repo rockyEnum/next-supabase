@@ -1,7 +1,31 @@
 import { createClient } from '@/api/supabase/client'
 import Link from 'next/link'
+import { Button } from "@/components/ui/button"
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { UserListClient } from '@/components/UserListClient'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { UserForm } from '@/components/UserForm'
 
 export default async function Page() {
+  
   const supabase = await createClient()
   const data = await supabase.from('user').select()
   
@@ -11,23 +35,65 @@ export default async function Page() {
         <div className="w-full">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-2xl font-bold">用户列表</h1>
-            <Link 
-              href="/protected" 
-              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
-            >
-              返回仪表板
-            </Link>
+            <div className="flex gap-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>新增用户</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>新增用户</DialogTitle>
+                    <DialogDescription>
+                      请输入用户信息
+                    </DialogDescription>
+                  </DialogHeader>
+                  <UserForm mode="create" />
+                </DialogContent>
+              </Dialog>
+              <Link 
+                href="/protected" 
+                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+              >
+                返回仪表板
+              </Link>
+            </div>
           </div>
           
           {data.data && data.data.length > 0 ? (
-            <ul className="space-y-4">
-              {data.data.map(item => (
-                <li key={item.id} className="p-4 border rounded-lg shadow-sm">
-                  <div className="font-medium">姓名: {item.name || '未提供'}</div>
-                  <div>年龄: {item.age || '未提供'}</div>
-                </li>
-              ))}
-            </ul>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>姓名</TableHead>
+                  <TableHead>年龄</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.data.map(item => (
+                  <TableRow key={item.id}>
+                    <TableCell>{item.name || '未提供'}</TableCell>
+                    <TableCell>{item.age || '未提供'}</TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm">编辑</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>编辑用户</DialogTitle>
+                            <DialogDescription>
+                              修改用户信息
+                            </DialogDescription>
+                          </DialogHeader>
+                          <UserForm mode="edit" user={item} />
+                        </DialogContent>
+                      </Dialog>
+                      <UserListClient userId={item.id} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           ) : (
             <div className="text-center py-8">
               <p className="text-gray-500">暂无用户数据</p>
