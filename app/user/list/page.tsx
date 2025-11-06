@@ -1,12 +1,12 @@
+"use client"
+
 import { createClient } from '@/api/supabase/client'
 import Link from 'next/link'
 import { Button } from "@/components/ui/button"
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -14,21 +14,47 @@ import {
 import { UserListClient } from '@/components/UserListClient'
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { UserForm } from '@/components/UserForm'
 
-export default async function Page() {
-  
-  const supabase = await createClient()
-  const data = await supabase.from('user').select()
-  
+import { useEffect, useState } from 'react'
+import { useUser } from '@/hooks/useUser'
+import { useRouter } from 'next/navigation'
+
+type User = {
+  id: string
+  name: string | null
+  age: number | null
+}
+
+export default function Page() {
+  const router = useRouter()
+  const { user, loading: authLoading } = useUser()
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (authLoading) return
+    if (!user) {
+      router.replace('/login')
+      return
+    }
+    const fetchUsers = async () => {
+      const supabase = await createClient()
+      const { data, error } = await supabase.from('user').select()
+      if (!error && data) {
+        setUsers(data as User[])
+      }
+      setLoading(false)
+    }
+    fetchUsers()
+  }, [authLoading, user, router])
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50">
       <main className="flex font-bold min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white sm:items-start">
@@ -59,7 +85,11 @@ export default async function Page() {
             </div>
           </div>
           
-          {data.data && data.data.length > 0 ? (
+          {authLoading || loading ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">加载中...</p>
+            </div>
+          ) : users && users.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -69,7 +99,7 @@ export default async function Page() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.data.map(item => (
+                {users.map(item => (
                   <TableRow key={item.id}>
                     <TableCell>{item.name || '未提供'}</TableCell>
                     <TableCell>{item.age || '未提供'}</TableCell>
@@ -85,7 +115,10 @@ export default async function Page() {
                               修改用户信息
                             </DialogDescription>
                           </DialogHeader>
-                          <UserForm mode="edit" user={item} />
+                          <UserForm
+                            mode="edit"
+                            user={{ id: item.id, name: item.name ?? '', age: item.age ?? 0 }}
+                          />
                         </DialogContent>
                       </Dialog>
                       <UserListClient userId={item.id} />
