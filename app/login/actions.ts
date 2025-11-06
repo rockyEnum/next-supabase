@@ -19,11 +19,13 @@ export async function login(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword(data)
 
   if (error) {
-    redirect('/error')
+    console.error('登录错误:', error.message)
+    // 重定向到错误页面，并传递错误信息
+    redirect(`/auth/error?message=${encodeURIComponent(error.message)}`)
   }
 
   revalidatePath('/', 'layout')
-  redirect('/account')
+  redirect('/protected')
 }
 
 /**
@@ -40,9 +42,12 @@ export async function signup(formData: FormData) {
   const { error } = await supabase.auth.signUp(data)
 
   if (error) {
-    redirect('/error')
+    console.error('注册错误:', error.message)
+    // 重定向到错误页面，并传递错误信息
+    redirect(`/auth/error?message=${encodeURIComponent(error.message)}`)
   }
 
+  // 如果注册成功，重定向到注册成功页面
   revalidatePath('/', 'layout')
-  redirect('/account')
+  redirect('/auth/sign-up-success')
 }
