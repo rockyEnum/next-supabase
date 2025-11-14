@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppToaster } from "@/components/ui/sonner-toaster";
+import { CopilotKit } from "@copilotkit/react-core"; 
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,8 +29,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <CopilotKit publicApiKey="ck_pub_d3045873813be25af0d83c23e4b9a15f">
         {children}
         <AppToaster />
+        </CopilotKit>
       </body>
     </html>
   );
