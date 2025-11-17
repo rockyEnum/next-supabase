@@ -25,6 +25,7 @@ import { UserForm } from '@/components/UserForm'
 import { useEffect, useState } from 'react'
 import { useUser } from '@/hooks/useUser'
 import { useRouter } from 'next/navigation'
+import { CopilotPopup } from "@copilotkit/react-ui";
 
 type User = {
   id: string
@@ -134,6 +135,13 @@ export default function Page() {
           )}
         </div>
       </main>
+      <CopilotPopup
+        instructions={"你是一个AI助手，请根据用户的问题给出最佳答案。"}
+        labels={{
+          title: "ai 助手",
+          initial: "需要帮助吗？",
+        }}
+      />
     </div>
   );
 }
