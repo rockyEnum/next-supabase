@@ -11,7 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { UserListClient } from '@/components/UserListClient'
 import {
   Dialog,
   DialogContent,
@@ -26,6 +25,8 @@ import { useEffect, useState } from 'react'
 import { useUser } from '@/hooks/useUser'
 import { useRouter } from 'next/navigation'
 import { CopilotPopup } from "@copilotkit/react-ui";
+import { useFrontendTool } from "@copilotkit/react-core";
+import { toast } from 'sonner'
 
 type User = {
   id: string
@@ -38,6 +39,92 @@ export default function Page() {
   const { user, loading: authLoading } = useUser()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState(false);
+  useFrontendTool({
+    name: "addUser",
+    description: "新增一行记录",
+    parameters: [
+      {
+        name: "name",
+        type: "string",
+        description: "新增一行记录",
+        required: true,
+      },
+      {
+        name: "age",
+        type: "number",
+        description: "新增一行记录",
+        required: true,
+      },
+    ],
+    handler: async ({ name, age }) => {
+      const supabase = await createClient();
+      const { error } = await supabase
+        .from('user')
+        .insert([{ name, age: age ? age : null }]);
+
+      if (error) {
+        toast.error(error.message)
+        return;
+      };
+      toast.success('新增成功')
+      fetchUsers()
+    },
+  });
+
+  useFrontendTool({
+    name: "del",
+    description: "删除一行记录",
+    parameters: [
+      {
+        name: "id",
+        type: "string",
+        description: "删除一条记录",
+        required: true,
+      },
+      
+    ],
+    handler: async ({ id }) => {
+      const supabase = await createClient();
+      const { error } = await supabase
+        .from('user')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        toast.error(error.message)
+        return;
+      };
+      toast.success('删除成功')
+      fetchUsers()
+    },
+  });
+
+  const fetchUsers = async () => {
+    const supabase = await createClient()
+    const { data, error } = await supabase.from('user').select().order('created_at', { ascending: false }); // 升序
+    if (!error && data) {
+      setUsers(data as User[])
+    }
+    setLoading(false)
+  }
+
+  /**
+   * 删除
+   */
+  const handleDelete = async (user: User) => {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from('user')
+      .delete()
+      .eq('id', user.id);
+    if (error) {
+      toast.error(error.code)
+      return;
+    }
+    toast.success('删除成功')
+    fetchUsers()
+  }
 
   useEffect(() => {
     if (authLoading) return
@@ -45,14 +132,7 @@ export default function Page() {
       router.replace('/login')
       return
     }
-    const fetchUsers = async () => {
-      const supabase = await createClient()
-      const { data, error } = await supabase.from('user').select()
-      if (!error && data) {
-        setUsers(data as User[])
-      }
-      setLoading(false)
-    }
+
     fetchUsers()
   }, [authLoading, user, router])
 
@@ -74,18 +154,18 @@ export default function Page() {
                       请输入用户信息
                     </DialogDescription>
                   </DialogHeader>
-                  <UserForm mode="create" />
+                  <UserForm mode="create" onSuccess={fetchUsers} />
                 </DialogContent>
               </Dialog>
-              <Link 
-                href="/protected" 
+              <Link
+                href="/protected"
                 className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
               >
                 返回仪表板
               </Link>
             </div>
           </div>
-          
+
           {authLoading || loading ? (
             <div className="text-center py-8">
               <p className="text-gray-500">加载中...</p>
@@ -119,10 +199,18 @@ export default function Page() {
                           <UserForm
                             mode="edit"
                             user={{ id: item.id, name: item.name ?? '', age: item.age ?? 0 }}
+                            onSuccess={fetchUsers}
                           />
                         </DialogContent>
                       </Dialog>
-                      <UserListClient userId={item.id} />
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(item)}
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? '删除中...' : '删除'}
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
